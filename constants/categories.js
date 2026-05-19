@@ -1,69 +1,57 @@
-// All preference / category options used in onboarding, filters, and chips.
+import { colors } from './colors';
 
-export const CATEGORY_IDS = {
-  NATURE: 'nature',
-  BEACH: 'beach',
-  FOOD: 'food',
-  CULTURE: 'culture',
-  ADVENTURE: 'adventure',
-  SHOPPING: 'shopping',
-  ACCOMMODATION: 'accommodation',
-};
-
-export const categories = [
+export const CATEGORIES = [
   {
-    id: CATEGORY_IDS.NATURE,
-    label: 'Nature & Parks',
-    icon: 'leaf',           // maps to icon name in your icon set
-    color: '#2E7D52',
-    description: 'Mountains, waterfalls, forests, and reserves',
+    id: 'nature',
+    label: 'Nature',
+    icon: '🌿',
+    color: colors.category.nature,
+    description: 'Parks, mountains, waterfalls, and natural wonders',
   },
   {
-    id: CATEGORY_IDS.BEACH,
-    label: 'Beaches & Bays',
-    icon: 'umbrella-beach',
-    color: '#1B7FA6',
-    description: 'White sand beaches, coves, snorkeling spots',
-  },
-  {
-    id: CATEGORY_IDS.FOOD,
-    label: 'Food & Dining',
-    icon: 'utensils',
-    color: '#C9973A',
-    description: 'Local cuisine, cafes, restaurants, street food',
-  },
-  {
-    id: CATEGORY_IDS.CULTURE,
-    label: 'Culture & Heritage',
-    icon: 'landmark',
-    color: '#7B4EA0',
-    description: 'Churches, museums, festivals, heritage sites',
-  },
-  {
-    id: CATEGORY_IDS.ADVENTURE,
+    id: 'adventure',
     label: 'Adventure',
-    icon: 'mountain',
-    color: '#C0392B',
-    description: 'Hiking, canyoneering, diving, extreme sports',
+    icon: '🧗',
+    color: colors.category.adventure,
+    description: 'Hiking, diving, extreme sports, and outdoor thrills',
   },
   {
-    id: CATEGORY_IDS.SHOPPING,
-    label: 'Shopping & Markets',
-    icon: 'shopping-bag',
-    color: '#E67E22',
-    description: 'Public markets, local crafts, pasalubong shops',
+    id: 'cultural',
+    label: 'Cultural Sites',
+    icon: '🏛️',
+    color: colors.category.cultural,
+    description: 'Museums, heritage sites, churches, and historical spots',
   },
   {
-    id: CATEGORY_IDS.ACCOMMODATION,
-    label: 'Stay & Resorts',
-    icon: 'bed',
-    color: '#5D6D7E',
-    description: 'Hotels, resorts, homestays, and lodges',
+    id: 'festivals',
+    label: 'Festivals',
+    icon: '🎉',
+    color: colors.category.festivals,
+    description: 'Local celebrations, fiestas, and seasonal events',
+  },
+  {
+    id: 'food',
+    label: 'Food',
+    icon: '🍽️',
+    color: colors.category.food,
+    description: 'Restaurants, markets, street food, and local cuisine',
+  },
+  {
+    id: 'shopping',
+    label: 'Shopping',
+    icon: '🛍️',
+    color: colors.category.shopping,
+    description: 'Markets, malls, souvenir shops, and local crafts',
+  },
+  {
+    id: 'relaxation',
+    label: 'Relaxation',
+    icon: '🏖️',
+    color: colors.category.relaxation,
+    description: 'Beaches, spas, resorts, and peaceful retreats',
   },
 ];
 
-// Flat list of IDs — handy for validation
-export const CATEGORY_ID_LIST = categories.map((c) => c.id);
+export const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
-// Lookup by ID
-export const categoryById = Object.fromEntries(categories.map((c) => [c.id, c]));
+export const CATEGORY_ID_LIST = CATEGORIES.map((c) => c.id);

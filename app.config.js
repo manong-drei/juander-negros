@@ -25,6 +25,7 @@ export default {
         'expo-image-picker',
         { photosPermission: 'Allow Juander Negros to access your photos for destination uploads.' },
       ],
+      '@react-native-google-signin/google-signin',
     ],
     experiments: {
       typedRoutes: true,

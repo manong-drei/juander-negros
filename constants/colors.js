@@ -1,57 +1,42 @@
 export const colors = {
-  // Brand — Negros Island greens
-  primary: '#1A5C38',        // deep forest green
-  primaryLight: '#2E7D52',   // mid green
-  primaryPale: '#D6EAD8',    // tint for backgrounds / chips
+  background: '#0A0E1A',
+  surface: '#131929',
+  card: '#1B2438',
+  cardAlt: '#222E45',
 
-  // Accent — warm gold (harvest / local crafts)
-  accent: '#C9973A',
-  accentLight: '#F5D98B',
-  accentPale: '#FDF6E3',
+  primary: '#4CAF7D',
+  primaryDim: 'rgba(76,175,125,0.15)',
+  accent: '#F5A623',
+  accentDim: 'rgba(245,166,35,0.15)',
 
-  // Sea / water highlight
-  sea: '#1B7FA6',
-  seaLight: '#A8D8EA',
+  danger: '#E05555',
 
-  // Neutrals
-  white: '#FFFFFF',
-  offWhite: '#F7F8F2',
-  surface: '#FFFFFF',
-  border: '#E4E7E1',
-  divider: '#ECEEE9',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A0AEBF',
+  textMuted: '#5A6A80',
 
-  // Text
-  textPrimary: '#1C1C1C',
-  textSecondary: '#5A6258',
-  textMuted: '#9AA398',
-  textOnPrimary: '#FFFFFF',
-  textOnAccent: '#FFFFFF',
+  border: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.16)',
 
-  // Semantic
-  success: '#2E7D52',
-  warning: '#C9973A',
-  error: '#C0392B',
-  info: '#1B7FA6',
+  overlay: 'rgba(10,14,26,0.7)',
+  glass: 'rgba(19,25,41,0.75)',
 
-  // Category chip colors
-  categoryNature: '#2E7D52',
-  categoryBeach: '#1B7FA6',
-  categoryFood: '#C9973A',
-  categoryCulture: '#7B4EA0',
-  categoryAdventure: '#C0392B',
-  categoryShopping: '#E67E22',
-  categoryAccommodation: '#5D6D7E',
+  markerBorder: '#FFFFFF',
+  userDot: '#4CAF7D',
 
-  // Map
-  mapMarkerDefault: '#1A5C38',
-  mapMarkerSelected: '#C9973A',
-  mapCluster: '#1A5C38',
+  category: {
+    nature: '#4CAF7D',
+    adventure: '#FF6B35',
+    cultural: '#9C6ADE',
+    festivals: '#F5A623',
+    food: '#E8507A',
+    shopping: '#4ECDC4',
+    relaxation: '#74B9FF',
+  },
 
-  // Bottom sheet / overlay
-  overlay: 'rgba(0,0,0,0.45)',
-  sheetBackground: '#FFFFFF',
-  sheetHandle: '#D0D5CC',
-
-  // Transparent helpers
-  transparent: 'transparent',
+  amenity: {
+    atm: '#F5A623',
+    hotel: '#9C6ADE',
+    restaurant: '#E8507A',
+  },
 };

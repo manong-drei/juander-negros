@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,38 @@ import {
   StyleSheet,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import GlassCard from '../../components/ui/GlassCard';
 import DestinationCard from '../../components/ui/DestinationCard';
 import DestinationMarker from '../../components/map/DestinationMarker';
 import AmenityMarker from '../../components/map/AmenityMarker';
 import { useAppContext } from '../../context/AppContext';
+import { useDirections } from '../_layout';
+import { useToast } from '../../components/ui/Toast';
 import { useMapData } from '../../hooks/useMapData';
 import { useLocation, getDistanceLabel, getDistanceKm } from '../../hooks/useLocation';
 import { darkMapStyle } from '../../constants/mapStyle';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
+
+function decodePolyline(encoded) {
+  const points = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let shift = 0, result = 0, b;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    shift = result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+    points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  }
+  return points;
+}
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -37,12 +55,63 @@ export default function MapScreen() {
   const { destinations, amenities } = useMapData(profile);
   const { location } = useLocation();
 
+  const { directionsTo, setDirectionsTo } = useDirections();
+  const toast = useToast();
+
   const mapRef = useRef(null);
   const listRef = useRef(null);
 
-  const [viewMode, setViewMode] = useState('map'); // 'map' | 'list'
+  const [viewMode, setViewMode] = useState('map');
   const [layers, setLayers] = useState({ atm: true, hotel: true, restaurant: true });
   const [activeIndex, setActiveIndex] = useState(0);
+  const [routeCoords, setRouteCoords] = useState([]);
+  const [routeInfo, setRouteInfo] = useState(null); // { distance, duration }
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!directionsTo || !location) return;
+
+    async function fetchRoute() {
+      setRouteLoading(true);
+      setRouteCoords([]);
+      setRouteInfo(null);
+      try {
+        const origin = `${location.latitude},${location.longitude}`;
+        const dest = `${directionsTo.latitude},${directionsTo.longitude}`;
+        const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&key=${key}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status !== 'OK') {
+          toast.show({ title: 'Directions unavailable', message: `${json.status}: ${json.error_message ?? ''}`, type: 'error' });
+        } else if (json.routes?.length) {
+          const leg = json.routes[0].legs[0];
+          setRouteCoords(decodePolyline(json.routes[0].overview_polyline.points));
+          setRouteInfo({ distance: leg.distance.text, duration: leg.duration.text });
+          mapRef.current?.fitToCoordinates(
+            [
+              { latitude: location.latitude, longitude: location.longitude },
+              { latitude: directionsTo.latitude, longitude: directionsTo.longitude },
+            ],
+            { edgePadding: { top: 80, right: 40, bottom: 200, left: 40 }, animated: true }
+          );
+        }
+      } catch (e) {
+        toast.show({ title: 'Directions fetch failed', message: e.message, type: 'error' });
+      } finally {
+        setRouteLoading(false);
+      }
+    }
+
+    fetchRoute();
+    setViewMode('map');
+  }, [directionsTo]);
+
+  function clearDirections() {
+    setDirectionsTo(null);
+    setRouteCoords([]);
+    setRouteInfo(null);
+  }
 
   const sortedDestinations = [...destinations].sort((a, b) =>
     getDistanceKm(location, a) - getDistanceKm(location, b)
@@ -125,6 +194,14 @@ export default function MapScreen() {
             {visibleAmenities.map((amenity) => (
               <AmenityMarker key={amenity.id} amenity={amenity} />
             ))}
+            {routeCoords.length > 0 && (
+              <Polyline
+                coordinates={routeCoords}
+                strokeColor={colors.primary}
+                strokeWidth={4}
+                lineDashPattern={[0]}
+              />
+            )}
           </MapView>
 
           {/* Top controls */}
@@ -160,8 +237,29 @@ export default function MapScreen() {
             )}
           </SafeAreaView>
 
+          {/* Navigation bar */}
+          {directionsTo && (
+            <View style={styles.navBar}>
+              {routeLoading ? (
+                <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
+              ) : (
+                <>
+                  <View style={styles.navInfo}>
+                    <Text style={styles.navName} numberOfLines={1}>{directionsTo.name}</Text>
+                    {routeInfo && (
+                      <Text style={styles.navMeta}>{routeInfo.duration} · {routeInfo.distance}</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity style={styles.navEndBtn} onPress={clearDirections}>
+                    <Text style={styles.navEndText}>End</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+
           {/* Bottom card strip */}
-          <View style={styles.cardStrip}>
+          <View style={[styles.cardStrip, directionsTo && { display: 'none' }]}>
             <FlatList
               ref={listRef}
               data={sortedDestinations}
@@ -242,6 +340,37 @@ const styles = StyleSheet.create({
   layerBtnActive: { backgroundColor: colors.primaryDim },
   layerIcon: { fontSize: 14 },
   layerLabel: { ...typography.preset.chip, color: colors.textMuted, textTransform: 'uppercase' },
+
+  navBar: {
+    position: 'absolute',
+    bottom: 90,
+    left: 16,
+    right: 16,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  navInfo: { flex: 1 },
+  navName: { ...typography.preset.subtitle, color: colors.textPrimary },
+  navMeta: { ...typography.preset.caption, color: colors.primary, marginTop: 2 },
+  navEndBtn: {
+    backgroundColor: colors.danger,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  navEndText: { ...typography.preset.button, color: colors.textPrimary },
 
   cardStrip: {
     position: 'absolute',

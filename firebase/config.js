@@ -1,4 +1,14 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import {
+  initializeAuth,
+  getAuth,
+  getReactNativePersistence,
+  indexedDBLocalPersistence,
+} from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -9,7 +19,19 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Guard against double-initialization in Expo's fast-refresh cycle
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+export const auth = getApps().length === 1
+  ? initializeAuth(app, {
+      persistence:
+        Platform.OS === 'web'
+          ? indexedDBLocalPersistence
+          : getReactNativePersistence(AsyncStorage),
+    })
+  : getAuth(app);
+
+export const db = getFirestore(app);
+
+export const storage = getStorage(app);
 
 export default app;
