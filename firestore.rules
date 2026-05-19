@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if the requester is an admin
+    function isAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper: check if the requester is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      // Anyone logged in can read any user profile (needed for admin dashboard)
+      allow read: if isAuth();
+      // Users can only write their own profile; admins can write any
+      allow write: if isAuth() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── Destinations ───────────────────────────────────────────────────────
+    match /destinations/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── Amenities ──────────────────────────────────────────────────────────
+    match /amenities/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── Bookmarks ──────────────────────────────────────────────────────────
+    // Direct path: users read/write their own bookmarks
+    match /bookmarks/{uid}/places/{destId} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
+    // Collection group path: needed for admin dashboard bookmark counts
+    // Matches ALL /places/{docId} docs regardless of parent path
+    match /{path=**}/places/{docId} {
+      allow read: if isAdmin();
+    }
+  }
+}

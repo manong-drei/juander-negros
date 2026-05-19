@@ -10,11 +10,9 @@ const TABS = [
   { name: 'profile', label: 'Profile', icon: '👤' },
 ];
 
-const ADMIN_TAB = { name: 'admin', label: 'Admin', icon: '⚙️' };
-
-export default function TabBar({ state, descriptors, navigation, isAdmin }) {
+export default function TabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
-  const tabs = isAdmin ? [...TABS, ADMIN_TAB] : TABS;
+  const tabs = TABS;
 
   return (
     <BlurView intensity={60} tint="dark" style={[styles.container, { paddingBottom: insets.bottom }]}>

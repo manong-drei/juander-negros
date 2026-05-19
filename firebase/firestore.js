@@ -32,6 +32,10 @@ export async function updateUserProfile(uid, patch) {
   await updateDoc(doc(db, 'users', uid), patch);
 }
 
+export async function updateUserRole(uid, role) {
+  await updateDoc(doc(db, 'users', uid), { role });
+}
+
 // ── Destinations ───────────────────────────────────────────────────────────
 
 export async function addDestination(data) {
