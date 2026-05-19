@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect } from 'expo-router';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { db, storage } from '../../firebase/config';
 import { addDestination, updateDestination, addAmenity, updateAmenity } from '../../firebase/firestore';
 import { useAppContext } from '../../context/AppContext';
@@ -25,13 +26,21 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { CATEGORIES } from '../../constants/categories';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
+import { darkMapStyle } from '../../constants/mapStyle';
 
 const TRAVEL_TYPES = ['solo', 'family', 'group'];
 const AMENITY_TYPES = ['atm', 'hotel', 'restaurant'];
 
+const NEGROS_REGION = {
+  latitude: 10.2926,
+  longitude: 123.0247,
+  latitudeDelta: 1.5,
+  longitudeDelta: 1.5,
+};
+
 const EMPTY_DEST = {
   name: '', description: '', categories: [], suitableFor: [],
-  latitude: '', longitude: '', photos: [],
+  latitude: '', longitude: '', photos: [], video: '',
 };
 
 const EMPTY_AMENITY = {
@@ -41,18 +50,23 @@ const EMPTY_AMENITY = {
 export default function AdminScreen() {
   const { profile } = useAppContext();
   const toast = useToast();
-  const [confirmDeactivate, setConfirmDeactivate] = useState(null); // { collection_, id }
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null);
 
-  const [tab, setTab] = useState('destinations'); // 'destinations' | 'amenities'
+  const [tab, setTab] = useState('destinations');
   const [destinations, setDestinations] = useState([]);
   const [amenities, setAmenities] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState('destination'); // 'destination' | 'amenity'
+  const [formType, setFormType] = useState('destination');
   const [editingId, setEditingId] = useState(null);
   const [destForm, setDestForm] = useState(EMPTY_DEST);
   const [amenityForm, setAmenityForm] = useState(EMPTY_AMENITY);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapPickerTarget, setMapPickerTarget] = useState('destination');
+  const [tempCoord, setTempCoord] = useState(null);
 
   if (profile?.role !== 'admin') {
     return <Redirect href="/(main)" />;
@@ -83,6 +97,7 @@ export default function AdminScreen() {
       latitude: String(item.latitude ?? ''),
       longitude: String(item.longitude ?? ''),
       photos: item.photos ?? [],
+      video: item.video ?? '',
     } : EMPTY_DEST);
     setShowForm(true);
   }
@@ -99,6 +114,30 @@ export default function AdminScreen() {
       isLocalRestaurant: item.isLocalRestaurant ?? false,
     } : EMPTY_AMENITY);
     setShowForm(true);
+  }
+
+  function openMapPicker(target) {
+    setMapPickerTarget(target);
+    const form = target === 'destination' ? destForm : amenityForm;
+    const lat = parseFloat(form.latitude);
+    const lng = parseFloat(form.longitude);
+    setTempCoord(!isNaN(lat) && !isNaN(lng) ? { latitude: lat, longitude: lng } : null);
+    setShowMapPicker(true);
+  }
+
+  function confirmMapCoord() {
+    if (!tempCoord) {
+      toast.show({ title: 'No location selected', message: 'Long-press on the map to drop a pin.', type: 'warning' });
+      return;
+    }
+    const lat = String(tempCoord.latitude.toFixed(6));
+    const lng = String(tempCoord.longitude.toFixed(6));
+    if (mapPickerTarget === 'destination') {
+      setDestForm((p) => ({ ...p, latitude: lat, longitude: lng }));
+    } else {
+      setAmenityForm((p) => ({ ...p, latitude: lat, longitude: lng }));
+    }
+    setShowMapPicker(false);
   }
 
   function toggleCat(id) {
@@ -121,7 +160,7 @@ export default function AdminScreen() {
 
   async function pickAndUploadPhoto() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.8,
     });
     if (result.canceled) return;
@@ -150,10 +189,38 @@ export default function AdminScreen() {
     setDestForm((prev) => ({ ...prev, photos: prev.photos.filter((p) => p !== url) }));
   }
 
+  async function pickAndUploadVideo() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      videoMaxDuration: 120,
+    });
+    if (result.canceled) return;
+
+    setUploadingVideo(true);
+    try {
+      const uri = result.assets[0].uri;
+      const filename = `${Date.now()}.mp4`;
+      const storageRef = ref(storage, `destinations/videos/${filename}`);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      await new Promise((resolve, reject) => {
+        const task = uploadBytesResumable(storageRef, blob);
+        task.on('state_changed', null, reject, () => resolve());
+      });
+      const url = await getDownloadURL(storageRef);
+      setDestForm((prev) => ({ ...prev, video: url }));
+      toast.show({ title: 'Video uploaded', type: 'success' });
+    } catch (e) {
+      toast.show({ title: 'Video Upload Failed', message: e.message, type: 'error' });
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
   async function saveDestination() {
-    const { name, description, categories, suitableFor, latitude, longitude, photos } = destForm;
+    const { name, latitude, longitude, description, categories, suitableFor, photos, video } = destForm;
     if (!name || !latitude || !longitude) {
-      toast.show({ title: 'Required Fields Missing', message: 'Name, latitude, and longitude are required.', type: 'warning' });
+      toast.show({ title: 'Required Fields Missing', message: 'Name and location are required.', type: 'warning' });
       return;
     }
     setSaving(true);
@@ -166,6 +233,7 @@ export default function AdminScreen() {
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         photos,
+        video: video || '',
         isActive: true,
       };
       if (editingId) {
@@ -185,7 +253,7 @@ export default function AdminScreen() {
   async function saveAmenity() {
     const { type, name, latitude, longitude, description, isLocalRestaurant } = amenityForm;
     if (!name || !latitude || !longitude) {
-      toast.show({ title: 'Required Fields Missing', message: 'Name, latitude, and longitude are required.', type: 'warning' });
+      toast.show({ title: 'Required Fields Missing', message: 'Name and location are required.', type: 'warning' });
       return;
     }
     setSaving(true);
@@ -227,13 +295,14 @@ export default function AdminScreen() {
     }
   }
 
+  const hasCoord = (form) => form.latitude !== '' && form.longitude !== '';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Admin Panel</Text>
       </View>
 
-      {/* Tab bar */}
       <View style={styles.tabs}>
         {['destinations', 'amenities'].map((t) => (
           <TouchableOpacity
@@ -248,7 +317,6 @@ export default function AdminScreen() {
         ))}
       </View>
 
-      {/* Add button */}
       <TouchableOpacity
         style={styles.addBtn}
         onPress={() => tab === 'destinations' ? openDestForm() : openAmenityForm()}
@@ -256,7 +324,6 @@ export default function AdminScreen() {
         <Text style={styles.addBtnText}>+ Add {tab === 'destinations' ? 'Destination' : 'Amenity'}</Text>
       </TouchableOpacity>
 
-      {/* List */}
       <FlatList
         data={tab === 'destinations' ? destinations : amenities}
         keyExtractor={(item) => item.id}
@@ -303,7 +370,7 @@ export default function AdminScreen() {
         onCancel={() => setConfirmDeactivate(null)}
       />
 
-      {/* Form modal */}
+      {/* ── Form Modal ── */}
       <Modal visible={showForm} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalSafe} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
@@ -377,25 +444,27 @@ export default function AdminScreen() {
                   })}
                 </View>
 
-                <Text style={styles.fieldLabel}>Latitude *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={destForm.latitude}
-                  onChangeText={(v) => setDestForm((p) => ({ ...p, latitude: v }))}
-                  placeholder="e.g. 10.2926"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-
-                <Text style={styles.fieldLabel}>Longitude *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={destForm.longitude}
-                  onChangeText={(v) => setDestForm((p) => ({ ...p, longitude: v }))}
-                  placeholder="e.g. 123.0247"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
+                <Text style={styles.fieldLabel}>Location *</Text>
+                <TouchableOpacity
+                  style={[styles.mapPickerBtn, hasCoord(destForm) && styles.mapPickerBtnSet]}
+                  onPress={() => openMapPicker('destination')}
+                >
+                  <Text style={styles.mapPickerIcon}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    {hasCoord(destForm) ? (
+                      <>
+                        <Text style={[styles.mapPickerPrimaryLabel, { color: colors.primary }]}>Location Set</Text>
+                        <Text style={styles.mapPickerCoords}>
+                          {parseFloat(destForm.latitude).toFixed(5)},{'  '}
+                          {parseFloat(destForm.longitude).toFixed(5)}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.mapPickerPrimaryLabel}>Tap to pick location on map</Text>
+                    )}
+                  </View>
+                  <Text style={styles.mapPickerChevron}>›</Text>
+                </TouchableOpacity>
 
                 <Text style={styles.fieldLabel}>Photos</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
@@ -415,6 +484,43 @@ export default function AdminScreen() {
                     )}
                   </TouchableOpacity>
                 </ScrollView>
+
+                <Text style={styles.fieldLabel}>Video</Text>
+                {destForm.video ? (
+                  <View style={styles.videoCard}>
+                    <View style={styles.videoIconWrap}>
+                      <Text style={styles.videoPlayIcon}>▶</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.videoAttachedLabel}>Video attached</Text>
+                      <Text style={styles.videoAttachedSub}>Tap × to remove and re-upload</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeVideoBtn}
+                      onPress={() => setDestForm((p) => ({ ...p, video: '' }))}
+                    >
+                      <Text style={styles.removeVideoBtnText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.addVideoBtn}
+                    onPress={pickAndUploadVideo}
+                    disabled={uploadingVideo}
+                  >
+                    {uploadingVideo ? (
+                      <>
+                        <ActivityIndicator color={colors.primary} style={{ marginRight: 8 }} />
+                        <Text style={styles.addVideoBtnText}>Uploading…</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.addVideoBtnIcon}>🎬</Text>
+                        <Text style={styles.addVideoBtnText}>Add Video</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               <>
@@ -452,25 +558,27 @@ export default function AdminScreen() {
                   multiline
                 />
 
-                <Text style={styles.fieldLabel}>Latitude *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={amenityForm.latitude}
-                  onChangeText={(v) => setAmenityForm((p) => ({ ...p, latitude: v }))}
-                  placeholder="e.g. 10.2926"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-
-                <Text style={styles.fieldLabel}>Longitude *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={amenityForm.longitude}
-                  onChangeText={(v) => setAmenityForm((p) => ({ ...p, longitude: v }))}
-                  placeholder="e.g. 123.0247"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
+                <Text style={styles.fieldLabel}>Location *</Text>
+                <TouchableOpacity
+                  style={[styles.mapPickerBtn, hasCoord(amenityForm) && styles.mapPickerBtnSet]}
+                  onPress={() => openMapPicker('amenity')}
+                >
+                  <Text style={styles.mapPickerIcon}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    {hasCoord(amenityForm) ? (
+                      <>
+                        <Text style={[styles.mapPickerPrimaryLabel, { color: colors.primary }]}>Location Set</Text>
+                        <Text style={styles.mapPickerCoords}>
+                          {parseFloat(amenityForm.latitude).toFixed(5)},{'  '}
+                          {parseFloat(amenityForm.longitude).toFixed(5)}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.mapPickerPrimaryLabel}>Tap to pick location on map</Text>
+                    )}
+                  </View>
+                  <Text style={styles.mapPickerChevron}>›</Text>
+                </TouchableOpacity>
 
                 {amenityForm.type === 'restaurant' && (
                   <View style={styles.switchRow}>
@@ -486,6 +594,58 @@ export default function AdminScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+      </Modal>
+
+      {/* ── Map Picker Modal ── */}
+      <Modal visible={showMapPicker} animationType="slide" presentationStyle="fullScreen">
+        <View style={styles.mapPickerScreen}>
+          <MapView
+            style={StyleSheet.absoluteFill}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={
+              tempCoord
+                ? { ...tempCoord, latitudeDelta: 0.05, longitudeDelta: 0.05 }
+                : NEGROS_REGION
+            }
+            customMapStyle={darkMapStyle}
+            onLongPress={(e) => setTempCoord(e.nativeEvent.coordinate)}
+          >
+            {tempCoord && (
+              <Marker
+                coordinate={tempCoord}
+                draggable
+                onDragEnd={(e) => setTempCoord(e.nativeEvent.coordinate)}
+                pinColor={colors.primary}
+              />
+            )}
+          </MapView>
+
+          <SafeAreaView style={styles.mapPickerTopBar} edges={['top']}>
+            <TouchableOpacity style={styles.mapPickerCloseBtn} onPress={() => setShowMapPicker(false)}>
+              <Text style={styles.mapPickerCloseText}>✕</Text>
+            </TouchableOpacity>
+            <View style={styles.mapPickerInstructionBadge}>
+              <Text style={styles.mapPickerInstructionText}>Long-press to drop pin · Drag to adjust</Text>
+            </View>
+          </SafeAreaView>
+
+          <SafeAreaView style={styles.mapPickerBottomBar} edges={['bottom']}>
+            {tempCoord ? (
+              <Text style={styles.mapPickerCoordDisplay}>
+                {tempCoord.latitude.toFixed(6)},{'  '}{tempCoord.longitude.toFixed(6)}
+              </Text>
+            ) : (
+              <Text style={styles.mapPickerNoPin}>No location selected yet</Text>
+            )}
+            <TouchableOpacity
+              style={[styles.mapPickerConfirmBtn, !tempCoord && { opacity: 0.4 }]}
+              onPress={confirmMapCoord}
+              disabled={!tempCoord}
+            >
+              <Text style={styles.mapPickerConfirmText}>Use This Location</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -550,7 +710,7 @@ const styles = StyleSheet.create({
   deactivateBtnText: { ...typography.preset.label, color: colors.danger },
   emptyText: { ...typography.preset.body, color: colors.textMuted, textAlign: 'center', paddingTop: 40 },
 
-  // Modal
+  // Form modal
   modalSafe: { flex: 1, backgroundColor: colors.background },
   modalHeader: {
     flexDirection: 'row',
@@ -593,6 +753,25 @@ const styles = StyleSheet.create({
   formChipIcon: { fontSize: 14 },
   formChipLabel: { ...typography.preset.chip, color: colors.textSecondary, textTransform: 'uppercase' },
 
+  // Map picker button (in form)
+  mapPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  mapPickerBtnSet: { borderColor: colors.primary, backgroundColor: colors.primaryDim },
+  mapPickerIcon: { fontSize: 20 },
+  mapPickerPrimaryLabel: { ...typography.preset.body, color: colors.textSecondary },
+  mapPickerCoords: { ...typography.preset.caption, color: colors.textMuted, marginTop: 2 },
+  mapPickerChevron: { fontSize: 22, color: colors.textMuted, fontWeight: '300' },
+
+  // Photos
   photoThumbWrapper: { position: 'relative', marginRight: 8 },
   photoThumb: { width: 80, height: 80, borderRadius: 10 },
   removePhoto: {
@@ -620,6 +799,111 @@ const styles = StyleSheet.create({
   },
   addPhotoBtnText: { fontSize: 28, color: colors.textMuted },
 
+  // Video
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  videoIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayIcon: { fontSize: 18, color: colors.primary },
+  videoAttachedLabel: { ...typography.preset.subtitle, color: colors.textPrimary },
+  videoAttachedSub: { ...typography.preset.caption, color: colors.textMuted, marginTop: 2 },
+  removeVideoBtn: {
+    backgroundColor: colors.danger + '20',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  removeVideoBtnText: { ...typography.preset.label, color: colors.danger },
+  addVideoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    paddingVertical: 16,
+  },
+  addVideoBtnIcon: { fontSize: 20 },
+  addVideoBtnText: { ...typography.preset.button, color: colors.textSecondary },
+
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
   switchLabel: { ...typography.preset.body, color: colors.textSecondary },
+
+  // Map picker full-screen modal
+  mapPickerScreen: { flex: 1, backgroundColor: colors.background },
+  mapPickerTopBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 12,
+  },
+  mapPickerCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPickerCloseText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  mapPickerInstructionBadge: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  mapPickerInstructionText: { ...typography.preset.caption, color: colors.textSecondary },
+  mapPickerBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.overlay,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 12,
+  },
+  mapPickerCoordDisplay: {
+    ...typography.preset.label,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  mapPickerNoPin: {
+    ...typography.preset.label,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  mapPickerConfirmBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  mapPickerConfirmText: { ...typography.preset.button, color: colors.background },
 });

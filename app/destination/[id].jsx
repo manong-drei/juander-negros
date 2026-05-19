@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, onSnapshot, collection } from 'firebase/firestore';
@@ -215,6 +216,17 @@ export default function DestinationDetailScreen() {
                 {/* Description */}
                 <Text style={styles.description}>{destination.description}</Text>
 
+                {/* Video */}
+                {!!destination.video && (
+                  <TouchableOpacity
+                    style={styles.videoBtn}
+                    onPress={() => Linking.openURL(destination.video)}
+                  >
+                    <Text style={styles.videoBtnIcon}>▶</Text>
+                    <Text style={styles.videoBtnText}>Watch Video</Text>
+                  </TouchableOpacity>
+                )}
+
                 {/* Actions */}
                 <View style={styles.actions}>
                   <TouchableOpacity
@@ -293,6 +305,21 @@ const styles = StyleSheet.create({
   chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
 
   description: { ...typography.preset.body, color: colors.textSecondary, lineHeight: 24, marginBottom: 28 },
+
+  videoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  videoBtnIcon: { fontSize: 16, color: colors.primary },
+  videoBtnText: { ...typography.preset.button, color: colors.primary },
 
   actions: { flexDirection: 'row', gap: 12 },
   bookmarkBtn: {
