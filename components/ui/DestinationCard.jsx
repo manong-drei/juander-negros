@@ -1,4 +1,5 @@
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import CategoryChip from './CategoryChip';
@@ -6,7 +7,7 @@ import CategoryChip from './CategoryChip';
 function PhotoFallback({ style }) {
   return (
     <View style={[style, styles.fallback]}>
-      <Text style={styles.fallbackIcon}>🌴</Text>
+      <MaterialIcons name="photo" size={36} color={colors.border} />
     </View>
   );
 }
@@ -63,10 +64,9 @@ const styles = StyleSheet.create({
   },
   imageH: { width: '100%', height: 130 },
   imageV: { width: 100, height: 90 },
-  fallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  fallbackIcon: { fontSize: 36 },
+  fallback: { backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
   info: { padding: 12, flex: 1 },
   name: { ...typography.preset.subtitle, color: colors.textPrimary, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  distance: { ...typography.preset.caption, color: colors.textMuted },
+  distance: { ...typography.preset.caption, color: colors.accent },
 });

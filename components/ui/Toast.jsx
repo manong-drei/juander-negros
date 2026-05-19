@@ -9,7 +9,7 @@ const ToastContext = createContext(null);
 const TYPE_COLOR = {
   success: colors.primary,
   error: colors.danger,
-  warning: colors.accent,
+  warning: '#F59E0B',
   info: colors.textSecondary,
 };
 

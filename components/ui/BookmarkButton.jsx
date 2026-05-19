@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 
 export default function BookmarkButton({ saved, onPress, size = 24, style }) {
@@ -13,12 +14,14 @@ export default function BookmarkButton({ saved, onPress, size = 24, style }) {
   }, [saved]);
 
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.btn, style]} hitSlop={12}>
-      <Animated.Text
-        style={[styles.icon, { fontSize: size, transform: [{ scale }] }]}
-      >
-        {saved ? '🔖' : '🔖'}
-      </Animated.Text>
+    <TouchableOpacity onPress={onPress} style={[styles.btn, style]} hitSlop={8}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <MaterialIcons
+          name={saved ? 'bookmark' : 'bookmark-border'}
+          size={size}
+          color={saved ? colors.accent : colors.textMuted}
+        />
+      </Animated.View>
       <Animated.View
         style={[
           styles.dot,
@@ -32,7 +35,6 @@ export default function BookmarkButton({ saved, onPress, size = 24, style }) {
 
 const styles = StyleSheet.create({
   btn: { alignItems: 'center', justifyContent: 'center' },
-  icon: {},
   dot: {
     position: 'absolute',
     bottom: -2,

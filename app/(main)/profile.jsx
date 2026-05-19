@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../../context/AppContext';
 import { signOut } from '../../firebase/auth';
@@ -18,13 +19,13 @@ import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 
 const CLASS_OPTIONS = [
-  { id: 'local', label: 'Local', icon: '🏡' },
-  { id: 'tourist', label: 'Tourist', icon: '✈️' },
+  { id: 'local', label: 'Local', icon: 'home' },
+  { id: 'tourist', label: 'Tourist', icon: 'flight' },
 ];
 const TRAVEL_OPTIONS = [
-  { id: 'solo', label: 'Solo', icon: '🧍' },
-  { id: 'family', label: 'Family', icon: '👨‍👩‍👧' },
-  { id: 'group', label: 'Group', icon: '👥' },
+  { id: 'solo', label: 'Solo', icon: 'person' },
+  { id: 'family', label: 'Family', icon: 'family-restroom' },
+  { id: 'group', label: 'Group', icon: 'groups' },
 ];
 
 export default function ProfileScreen() {
@@ -87,24 +88,40 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          {user?.photoURL ? (
-            <Image source={{ uri: user.photoURL }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.initials}>{initials}</Text>
-            </View>
-          )}
+          <View style={styles.avatarWrapper}>
+            {user?.photoURL ? (
+              <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.initials}>{initials}</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.displayName}>{profile?.displayName || user?.displayName || 'User'}</Text>
+          <View style={styles.userTypeLabelRow}>
+            <MaterialIcons
+              name={profile?.class === 'tourist' ? 'flight' : 'home'}
+              size={13}
+              color={colors.accent}
+            />
+            <Text style={styles.userTypeLabel}>
+              {profile?.class === 'tourist' ? 'Tourist Explorer' : 'Local Explorer'}
+            </Text>
+          </View>
           <Text style={styles.email}>{user?.email}</Text>
+          <View style={styles.locationRow}>
+            <MaterialIcons name="place" size={13} color={colors.textSecondary} />
+            <Text style={styles.locationText}>Bacolod City, Negros Occidental</Text>
+          </View>
         </View>
 
         {/* Preferences section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Preferences</Text>
+            <Text style={styles.sectionTitle}>My Preferences</Text>
             {!editing && (
               <TouchableOpacity onPress={startEdit} style={styles.editBtn}>
-                <Text style={styles.editBtnText}>Edit</Text>
+                <Text style={styles.editBtnText}>Edit Preferences</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -120,7 +137,7 @@ export default function ProfileScreen() {
                     style={[styles.optionBtn, draftClass === opt.id && styles.optionBtnActive]}
                     onPress={() => setDraftClass(opt.id)}
                   >
-                    <Text style={styles.optionIcon}>{opt.icon}</Text>
+                    <MaterialIcons name={opt.icon} size={18} color={draftClass === opt.id ? colors.primary : colors.textSecondary} />
                     <Text style={[styles.optionLabel, draftClass === opt.id && { color: colors.primary }]}>
                       {opt.label}
                     </Text>
@@ -137,7 +154,7 @@ export default function ProfileScreen() {
                     style={[styles.optionBtn, draftTravel === opt.id && styles.optionBtnActive]}
                     onPress={() => setDraftTravel(opt.id)}
                   >
-                    <Text style={styles.optionIcon}>{opt.icon}</Text>
+                    <MaterialIcons name={opt.icon} size={18} color={draftTravel === opt.id ? colors.primary : colors.textSecondary} />
                     <Text style={[styles.optionLabel, draftTravel === opt.id && { color: colors.primary }]}>
                       {opt.label}
                     </Text>
@@ -156,7 +173,7 @@ export default function ProfileScreen() {
                       style={[styles.chip, sel && { backgroundColor: cat.color, borderColor: cat.color }]}
                       onPress={() => toggleInterest(cat.id)}
                     >
-                      <Text style={styles.chipIcon}>{cat.icon}</Text>
+                      <MaterialIcons name={cat.icon} size={14} color={sel ? '#fff' : cat.color} />
                       <Text style={[styles.chipLabel, sel && { color: '#fff' }]}>{cat.label}</Text>
                     </TouchableOpacity>
                   );
@@ -170,7 +187,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveBtn} onPress={savePreferences} disabled={saving}>
                   {saving ? (
-                    <ActivityIndicator color={colors.background} />
+                    <ActivityIndicator color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveBtnText}>Save</Text>
                   )}
@@ -180,18 +197,18 @@ export default function ProfileScreen() {
           ) : (
             <>
               <View style={styles.prefRow}>
-                <Text style={styles.prefKey}>Type</Text>
+                <Text style={styles.prefKey}>User Type</Text>
                 <Text style={styles.prefVal}>
-                  {profile?.class === 'tourist' ? '✈️ Tourist' : '🏡 Local'}
+                  {profile?.class === 'tourist' ? 'Tourist' : 'Local'}
                 </Text>
               </View>
               <View style={styles.prefRow}>
-                <Text style={styles.prefKey}>Travel style</Text>
+                <Text style={styles.prefKey}>Travel Type</Text>
                 <Text style={styles.prefVal}>
                   {TRAVEL_OPTIONS.find((t) => t.id === profile?.travelType)?.label ?? '—'}
                 </Text>
               </View>
-              <View style={styles.prefRow}>
+              <View style={[styles.prefRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.prefKey}>Interests</Text>
                 <Text style={styles.prefVal}>
                   {profile?.interests?.length
@@ -226,8 +243,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 20, paddingBottom: 40 },
 
-  avatarSection: { alignItems: 'center', marginBottom: 32 },
-  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
+  avatarSection: { alignItems: 'center', marginBottom: 28 },
+  avatarWrapper: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  avatar: { width: 88, height: 88, borderRadius: 44 },
   avatarFallback: {
     width: 88,
     height: 88,
@@ -235,13 +262,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDim,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    marginBottom: 12,
   },
   initials: { ...typography.preset.heading1, color: colors.primary },
   displayName: { ...typography.preset.heading2, color: colors.textPrimary, marginBottom: 4 },
+  userTypeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2, marginBottom: 4 },
+  userTypeLabel: { ...typography.preset.label, color: colors.accent },
   email: { ...typography.preset.caption, color: colors.textMuted },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  locationText: { ...typography.preset.caption, color: colors.textSecondary },
 
   section: {
     backgroundColor: colors.surface,
@@ -260,9 +288,11 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.preset.heading3, color: colors.textPrimary },
   editBtn: {
     backgroundColor: colors.primaryDim,
-    borderRadius: 8,
+    borderRadius: 50,
     paddingHorizontal: 14,
     paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   editBtnText: { ...typography.preset.label, color: colors.primary },
 
@@ -291,7 +321,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   optionBtnActive: { borderColor: colors.primary, backgroundColor: colors.primaryDim },
-  optionIcon: { fontSize: 18 },
   optionLabel: { ...typography.preset.label, color: colors.textSecondary },
 
   chipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -306,7 +335,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  chipIcon: { fontSize: 14 },
   chipLabel: { ...typography.preset.chip, color: colors.textSecondary, textTransform: 'uppercase' },
 
   editActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
@@ -326,7 +354,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
   },
-  saveBtnText: { ...typography.preset.button, color: colors.background },
+  saveBtnText: { ...typography.preset.button, color: '#FFFFFF' },
 
   signOutBtn: {
     borderWidth: 1.5,

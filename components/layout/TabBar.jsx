@@ -1,22 +1,22 @@
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 
 const TABS = [
-  { name: 'index', label: 'Explore', icon: '🗺️' },
-  { name: 'bookmarks', label: 'Saved', icon: '🔖' },
-  { name: 'profile', label: 'Profile', icon: '👤' },
+  { name: 'index',     label: 'Home',      icon: 'home' },
+  { name: 'bookmarks', label: 'Bookmarks', icon: 'bookmark' },
+  { name: 'profile',   label: 'Profile',   icon: 'person' },
 ];
 
 export default function TabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
-  const tabs = TABS;
 
   return (
     <BlurView intensity={60} tint="dark" style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {tabs.map((tab, index) => {
+      {TABS.map((tab) => {
         const route = state.routes.find((r) => r.name === tab.name);
         if (!route) return null;
         const isFocused = state.index === state.routes.indexOf(route);
@@ -37,7 +37,11 @@ export default function TabBar({ state, descriptors, navigation }) {
             style={styles.tab}
             activeOpacity={0.7}
           >
-            <Text style={styles.icon}>{tab.icon}</Text>
+            <MaterialIcons
+              name={tab.icon}
+              size={24}
+              color={isFocused ? colors.primary : colors.textMuted}
+            />
             <Text style={[styles.label, isFocused && styles.labelActive]}>
               {tab.label}
             </Text>
@@ -58,8 +62,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 4, position: 'relative' },
-  icon: { fontSize: 22, marginBottom: 3 },
-  label: { ...typography.preset.chip, color: colors.textMuted, textTransform: 'uppercase' },
+  label: { ...typography.preset.chip, color: colors.textMuted, textTransform: 'uppercase', fontSize: 10, marginTop: 2 },
   labelActive: { color: colors.primary },
   activeDot: {
     position: 'absolute',

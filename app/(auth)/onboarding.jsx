@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRootAuth } from '../_layout';
@@ -22,14 +23,14 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const TOTAL_STEPS = 3;
 
 const CLASS_OPTIONS = [
-  { id: 'local', label: 'Local', desc: 'I live here and want to explore my region', icon: '🏡' },
-  { id: 'tourist', label: 'Tourist', desc: 'I\'m visiting and need full guidance', icon: '✈️' },
+  { id: 'local',   label: 'Local',   desc: 'I live here and want to explore my region', icon: 'home' },
+  { id: 'tourist', label: 'Tourist', desc: "I'm visiting and need full guidance",         icon: 'flight' },
 ];
 
 const TRAVEL_OPTIONS = [
-  { id: 'solo', label: 'Solo', icon: '🧍' },
-  { id: 'family', label: 'Family', icon: '👨‍👩‍👧' },
-  { id: 'group', label: 'Group', icon: '👥' },
+  { id: 'solo',   label: 'Solo',   icon: 'person' },
+  { id: 'family', label: 'Family', icon: 'family-restroom' },
+  { id: 'group',  label: 'Group',  icon: 'groups' },
 ];
 
 export default function OnboardingScreen() {
@@ -45,8 +46,8 @@ export default function OnboardingScreen() {
   const [saving, setSaving] = useState(false);
 
   function goNext() {
-    if (step === 0 && !userClass) { toast.show({ title: 'Who are you?', message: 'Please select whether you are a local or a tourist.', type: 'warning' }); return; }
-    if (step === 1 && !travelType) { toast.show({ title: 'How do you travel?', message: 'Please choose your travel style.', type: 'warning' }); return; }
+    if (step === 0 && !userClass)      { toast.show({ title: 'Who are you?', message: 'Please select whether you are a local or a tourist.', type: 'warning' }); return; }
+    if (step === 1 && !travelType)     { toast.show({ title: 'How do you travel?', message: 'Please choose your travel style.', type: 'warning' }); return; }
     if (step === 2 && interests.length === 0) { toast.show({ title: 'Pick your interests', message: 'Select at least one thing you are into.', type: 'warning' }); return; }
 
     if (step < TOTAL_STEPS - 1) {
@@ -123,14 +124,20 @@ export default function OnboardingScreen() {
               style={[styles.bigCard, userClass === opt.id && styles.bigCardActive]}
               onPress={() => setUserClass(opt.id)}
             >
-              <Text style={styles.bigCardIcon}>{opt.icon}</Text>
+              <MaterialIcons
+                name={opt.icon}
+                size={32}
+                color={userClass === opt.id ? colors.primary : colors.textSecondary}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.bigCardLabel, userClass === opt.id && { color: colors.primary }]}>
                   {opt.label}
                 </Text>
                 <Text style={styles.bigCardDesc}>{opt.desc}</Text>
               </View>
-              {userClass === opt.id && <Text style={styles.check}>✓</Text>}
+              {userClass === opt.id && (
+                <MaterialIcons name="check-circle" size={22} color={colors.primary} />
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -146,7 +153,11 @@ export default function OnboardingScreen() {
                 style={[styles.travelCard, travelType === opt.id && styles.travelCardActive]}
                 onPress={() => setTravelType(opt.id)}
               >
-                <Text style={styles.travelIcon}>{opt.icon}</Text>
+                <MaterialIcons
+                  name={opt.icon}
+                  size={36}
+                  color={travelType === opt.id ? colors.primary : colors.textSecondary}
+                />
                 <Text style={[styles.travelLabel, travelType === opt.id && { color: colors.primary }]}>
                   {opt.label}
                 </Text>
@@ -173,7 +184,11 @@ export default function OnboardingScreen() {
                     ]}
                     onPress={() => toggleInterest(cat.id)}
                   >
-                    <Text style={styles.chipIcon}>{cat.icon}</Text>
+                    <MaterialIcons
+                      name={cat.icon}
+                      size={16}
+                      color={selected ? '#fff' : cat.color}
+                    />
                     <Text style={[styles.chipLabel, selected && { color: '#fff' }]}>
                       {cat.label}
                     </Text>
@@ -196,9 +211,11 @@ export default function OnboardingScreen() {
         )}
         <TouchableOpacity style={styles.nextBtn} onPress={goNext} disabled={saving}>
           {saving ? (
-            <ActivityIndicator color={colors.background} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.nextBtnText}>{step === TOTAL_STEPS - 1 ? 'Done' : 'Next'}</Text>
+            <Text style={styles.nextBtnText}>
+              {step === TOTAL_STEPS - 1 ? "Let's Explore Negros!" : 'Next'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -216,8 +233,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  dotActive: { width: 24, backgroundColor: colors.primary },
+  dot: { width: 8, height: 6, borderRadius: 3, backgroundColor: colors.border },
+  dotActive: { width: 28, height: 6, borderRadius: 3, backgroundColor: colors.primary },
 
   slidesWrapper: {
     flexDirection: 'row',
@@ -246,10 +263,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bigCardActive: { borderColor: colors.primary, backgroundColor: colors.primaryDim },
-  bigCardIcon: { fontSize: 32 },
   bigCardLabel: { ...typography.preset.heading3, color: colors.textPrimary, marginBottom: 4 },
   bigCardDesc: { ...typography.preset.caption, color: colors.textSecondary },
-  check: { fontSize: 18, color: colors.primary },
 
   travelRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
   travelCard: {
@@ -261,9 +276,9 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     borderWidth: 1.5,
     borderColor: colors.border,
+    gap: 10,
   },
   travelCardActive: { borderColor: colors.primary, backgroundColor: colors.primaryDim },
-  travelIcon: { fontSize: 36, marginBottom: 10 },
   travelLabel: { ...typography.preset.subtitle, color: colors.textPrimary },
 
   chipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -278,7 +293,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  chipIcon: { fontSize: 16 },
   chipLabel: { ...typography.preset.chip, color: colors.textSecondary, textTransform: 'uppercase' },
 
   navRow: {
@@ -293,7 +307,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 50,
     paddingVertical: 16,
     alignItems: 'center',
   },
@@ -301,9 +315,9 @@ const styles = StyleSheet.create({
   nextBtn: {
     flex: 2,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: 50,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  nextBtnText: { ...typography.preset.button, color: colors.background },
+  nextBtnText: { ...typography.preset.button, color: '#FFFFFF' },
 });

@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Marker } from 'react-native-maps';
 import { categoryById } from '../../constants/categories';
 import { colors } from '../../constants/colors';
-import { typography } from '../../constants/typography';
 
 export default function DestinationMarker({ destination, onPress }) {
   const primaryCat = destination.categories?.[0];
@@ -18,7 +18,7 @@ export default function DestinationMarker({ destination, onPress }) {
     >
       <View style={styles.wrapper}>
         <View style={[styles.bubble, { borderColor: pinColor }]}>
-          <Text style={styles.icon}>{cat?.icon ?? '📍'}</Text>
+          <MaterialIcons name={cat?.icon ?? 'place'} size={18} color={pinColor} />
         </View>
         <View style={[styles.tail, { borderTopColor: pinColor }]} />
       </View>
@@ -37,12 +37,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.5,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 5,
+    elevation: 6,
   },
-  icon: { fontSize: 18 },
   tail: {
     width: 0,
     height: 0,

@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { colors } from '../../constants/colors';
 
-export default function GlassCard({ style, children, intensity = 40 }) {
+export default function GlassCard({ style, children, intensity = 50 }) {
   return (
     <BlurView
       intensity={intensity}

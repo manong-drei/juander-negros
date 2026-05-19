@@ -9,6 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
@@ -49,6 +50,12 @@ const NEGROS_REGION = {
   longitudeDelta: 1.5,
 };
 
+const LAYER_BUTTONS = [
+  { type: 'atm',        label: 'ATMs',   icon: 'atm' },
+  { type: 'hotel',      label: 'Hotels', icon: 'hotel' },
+  { type: 'restaurant', label: 'Eats',   icon: 'restaurant' },
+];
+
 export default function MapScreen() {
   const router = useRouter();
   const { profile } = useAppContext();
@@ -62,11 +69,15 @@ export default function MapScreen() {
   const listRef = useRef(null);
 
   const [viewMode, setViewMode] = useState('map');
-  const [layers, setLayers] = useState({ atm: true, hotel: true, restaurant: true });
+  const [amenityLayers, setAmenityLayers] = useState({ atm: true, hotel: true, restaurant: true });
   const [activeIndex, setActiveIndex] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
-  const [routeInfo, setRouteInfo] = useState(null); // { distance, duration }
+  const [routeInfo, setRouteInfo] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
+
+  function toggleLayer(type) {
+    setAmenityLayers((prev) => ({ ...prev, [type]: !prev[type] }));
+  }
 
   useEffect(() => {
     if (!directionsTo || !location) return;
@@ -117,10 +128,6 @@ export default function MapScreen() {
     getDistanceKm(location, a) - getDistanceKm(location, b)
   );
 
-  function toggleLayer(type) {
-    setLayers((prev) => ({ ...prev, [type]: !prev[type] }));
-  }
-
   function openDestination(item) {
     router.push(`/destination/${item.id}`);
   }
@@ -148,7 +155,7 @@ export default function MapScreen() {
     openDestination(item);
   }
 
-  const visibleAmenities = amenities.filter((a) => layers[a.type]);
+  const visibleAmenities = amenities.filter((a) => amenityLayers[a.type]);
 
   const renderCard = useCallback(({ item }) => (
     <DestinationCard
@@ -206,29 +213,36 @@ export default function MapScreen() {
 
           {/* Top controls */}
           <SafeAreaView edges={['top']} style={styles.topControls} pointerEvents="box-none">
+            {/* Search bar */}
+            <View style={styles.searchBar}>
+              <MaterialIcons name="search" size={18} color={colors.textMuted} style={styles.searchIconStyle} />
+              <Text style={styles.searchPlaceholder}>Search destinations...</Text>
+              <MaterialIcons name="tune" size={18} color={colors.textSecondary} />
+            </View>
+
             {/* Map/List toggle */}
             <GlassCard style={styles.toggleCard}>
               <TouchableOpacity onPress={() => setViewMode('list')} style={styles.toggleBtn}>
-                <Text style={styles.toggleIcon}>☰</Text>
-                <Text style={styles.toggleText}>List</Text>
+                <MaterialIcons name="view-list" size={16} color={colors.textSecondary} />
+                <Text style={styles.toggleText}>List View</Text>
               </TouchableOpacity>
             </GlassCard>
 
             {/* Tourist layer toggle */}
             {profile?.class === 'tourist' && (
               <GlassCard style={styles.layerCard}>
-                {[
-                  { type: 'atm', label: 'ATM', icon: '💳' },
-                  { type: 'hotel', label: 'Hotels', icon: '🏨' },
-                  { type: 'restaurant', label: 'Eats', icon: '🍴' },
-                ].map((l) => (
+                {LAYER_BUTTONS.map((l) => (
                   <TouchableOpacity
                     key={l.type}
-                    style={[styles.layerBtn, layers[l.type] && styles.layerBtnActive]}
+                    style={[styles.layerBtn, amenityLayers[l.type] && styles.layerBtnActive]}
                     onPress={() => toggleLayer(l.type)}
                   >
-                    <Text style={styles.layerIcon}>{l.icon}</Text>
-                    <Text style={[styles.layerLabel, layers[l.type] && { color: colors.primary }]}>
+                    <MaterialIcons
+                      name={l.icon}
+                      size={14}
+                      color={amenityLayers[l.type] ? colors.primary : colors.textMuted}
+                    />
+                    <Text style={[styles.layerLabel, amenityLayers[l.type] && { color: colors.primary }]}>
                       {l.label}
                     </Text>
                   </TouchableOpacity>
@@ -286,7 +300,8 @@ export default function MapScreen() {
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>Nearby Destinations</Text>
             <TouchableOpacity onPress={() => setViewMode('map')} style={styles.mapToggleBtn}>
-              <Text style={styles.mapToggleText}>🗺 Map</Text>
+              <MaterialIcons name="map" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+              <Text style={styles.mapToggleText}>Map View</Text>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -317,6 +332,19 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 10,
   },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchIconStyle: { marginRight: 10 },
+  searchPlaceholder: { ...typography.preset.body, color: colors.textMuted, flex: 1 },
+
   toggleCard: { alignSelf: 'center', borderRadius: 50, overflow: 'hidden' },
   toggleBtn: {
     flexDirection: 'row',
@@ -325,7 +353,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  toggleIcon: { fontSize: 16, color: colors.textSecondary },
   toggleText: { ...typography.preset.label, color: colors.textSecondary },
 
   layerCard: { alignSelf: 'center', borderRadius: 50, flexDirection: 'row' },
@@ -338,7 +365,6 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   layerBtnActive: { backgroundColor: colors.primaryDim },
-  layerIcon: { fontSize: 14 },
   layerLabel: { ...typography.preset.chip, color: colors.textMuted, textTransform: 'uppercase' },
 
   navBar: {
@@ -372,12 +398,7 @@ const styles = StyleSheet.create({
   },
   navEndText: { ...typography.preset.button, color: colors.textPrimary },
 
-  cardStrip: {
-    position: 'absolute',
-    bottom: 90,
-    left: 0,
-    right: 0,
-  },
+  cardStrip: { position: 'absolute', bottom: 90, left: 0, right: 0 },
   cardList: { paddingHorizontal: 16, paddingVertical: 4 },
 
   emptyCard: {
@@ -404,6 +425,8 @@ const styles = StyleSheet.create({
   },
   listTitle: { ...typography.preset.heading2, color: colors.textPrimary },
   mapToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: 50,
     paddingHorizontal: 14,

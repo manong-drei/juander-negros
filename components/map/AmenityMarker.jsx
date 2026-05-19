@@ -1,11 +1,12 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Marker } from 'react-native-maps';
 import { colors } from '../../constants/colors';
 
 const TYPE_CONFIG = {
-  atm: { icon: '💳', color: colors.amenity.atm, shape: 'square' },
-  hotel: { icon: '🏨', color: colors.amenity.hotel, shape: 'circle' },
-  restaurant: { icon: '🍴', color: colors.amenity.restaurant, shape: 'circle' },
+  atm:        { icon: 'atm',        color: colors.amenity.atm,        shape: 'square' },
+  hotel:      { icon: 'hotel',      color: colors.amenity.hotel,      shape: 'circle' },
+  restaurant: { icon: 'restaurant', color: colors.amenity.restaurant, shape: 'circle' },
 };
 
 export default function AmenityMarker({ amenity, onPress }) {
@@ -25,7 +26,7 @@ export default function AmenityMarker({ amenity, onPress }) {
           { borderColor: cfg.color },
         ]}
       >
-        <Text style={styles.icon}>{cfg.icon}</Text>
+        <MaterialIcons name={cfg.icon} size={14} color={cfg.color} />
       </View>
     </Marker>
   );
@@ -41,11 +42,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.45,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 3,
-    elevation: 4,
+    elevation: 5,
   },
   square: { borderRadius: 6 },
-  icon: { fontSize: 14 },
 });

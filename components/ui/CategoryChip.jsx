@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { categoryById } from '../../constants/categories';
 import { typography } from '../../constants/typography';
 import { colors } from '../../constants/colors';
@@ -8,7 +9,7 @@ export default function CategoryChip({ categoryId, style }) {
   if (!cat) return null;
   return (
     <View style={[styles.chip, { borderColor: cat.color + '50' }, style]}>
-      <Text style={styles.icon}>{cat.icon}</Text>
+      <MaterialIcons name={cat.icon} size={12} color={cat.color} />
       <Text style={[styles.label, { color: cat.color }]}>{cat.label}</Text>
     </View>
   );
@@ -25,6 +26,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: colors.surface,
   },
-  icon: { fontSize: 12 },
   label: { ...typography.preset.chip, textTransform: 'uppercase' },
 });

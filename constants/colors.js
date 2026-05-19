@@ -1,41 +1,44 @@
 export const colors = {
-  background: '#0A0E1A',
-  surface: '#131929',
-  card: '#1B2438',
-  cardAlt: '#222E45',
+  background: '#071214',
+  surface: '#0B2A2D',
+  card: '#0F3335',
+  cardAlt: '#1A4448',
 
-  primary: '#4CAF7D',
-  primaryDim: 'rgba(76,175,125,0.15)',
-  accent: '#F5A623',
-  accentDim: 'rgba(245,166,35,0.15)',
+  primary: '#10B981',
+  primaryDim: 'rgba(16,185,129,0.15)',
+  accent: '#14B8A6',
+  accentDim: 'rgba(20,184,166,0.15)',
 
   danger: '#E05555',
 
   textPrimary: '#FFFFFF',
-  textSecondary: '#A0AEBF',
-  textMuted: '#5A6A80',
+  textSecondary: '#94A3B8',
+  textMuted: '#94A3B8',
 
-  border: 'rgba(255,255,255,0.08)',
-  borderStrong: 'rgba(255,255,255,0.16)',
+  border: 'rgba(20,184,166,0.12)',
+  borderStrong: 'rgba(20,184,166,0.22)',
 
-  overlay: 'rgba(10,14,26,0.7)',
-  glass: 'rgba(19,25,41,0.75)',
+  overlay: 'rgba(7,18,20,0.7)',
+  glass: 'rgba(11,42,45,0.75)',
+
+  softMint: '#D7FBE8',
+  offWhite: '#F8F5EE',
 
   markerBorder: '#FFFFFF',
-  userDot: '#4CAF7D',
+  userDot: '#10B981',
 
   category: {
-    nature: '#4CAF7D',
+    nature: '#10B981',
     adventure: '#FF6B35',
     cultural: '#9C6ADE',
-    festivals: '#F5A623',
+    festivals: '#F59E0B',
     food: '#E8507A',
-    shopping: '#4ECDC4',
+    shopping: '#14B8A6',
     relaxation: '#74B9FF',
   },
 
   amenity: {
-    atm: '#F5A623',
+    atm: '#F59E0B',
     hotel: '#9C6ADE',
     restaurant: '#E8507A',
   },

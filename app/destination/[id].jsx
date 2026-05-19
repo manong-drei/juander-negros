@@ -21,6 +21,7 @@ import Animated, {
   interpolate,
   runOnJS,
 } from 'react-native-reanimated';
+import { MaterialIcons } from '@expo/vector-icons';
 import { db } from '../../firebase/config';
 import { addBookmark, removeBookmark } from '../../firebase/firestore';
 import { useRootAuth, useDirections } from '../_layout';
@@ -189,7 +190,7 @@ export default function DestinationDetailScreen() {
                 </View>
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Text style={styles.photoPlaceholderIcon}>🏔️</Text>
+                  <MaterialIcons name="landscape" size={64} color={colors.border} />
                 </View>
               )}
 
@@ -222,7 +223,7 @@ export default function DestinationDetailScreen() {
                     style={styles.videoBtn}
                     onPress={() => Linking.openURL(destination.video)}
                   >
-                    <Text style={styles.videoBtnIcon}>▶</Text>
+                    <MaterialIcons name="play-arrow" size={20} color={colors.primary} />
                     <Text style={styles.videoBtnText}>Watch Video</Text>
                   </TouchableOpacity>
                 )}
@@ -233,14 +234,19 @@ export default function DestinationDetailScreen() {
                     style={[styles.bookmarkBtn, saved && styles.bookmarkBtnActive]}
                     onPress={toggleBookmark}
                   >
-                    <Text style={styles.bookmarkIcon}>{saved ? '🔖' : '🔖'}</Text>
+                    <MaterialIcons
+                      name={saved ? 'bookmark' : 'bookmark-border'}
+                      size={20}
+                      color={saved ? colors.accent : colors.textSecondary}
+                    />
                     <Text style={[styles.bookmarkText, saved && { color: colors.accent }]}>
                       {saved ? 'Saved' : 'Save'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.directionsBtn} onPress={openDirections}>
-                    <Text style={styles.directionsBtnText}>Get Directions →</Text>
+                    <MaterialIcons name="directions" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.directionsBtnText}>Get Directions</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -259,14 +265,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     top: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
   },
 
   handleRow: { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.accent },
 
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
   errorText: { ...typography.preset.body, color: colors.textMuted },
@@ -279,7 +285,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoPlaceholderIcon: { fontSize: 64 },
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -288,7 +293,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   photoDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
-  photoDotActive: { backgroundColor: colors.primary, width: 18 },
+  photoDotActive: { backgroundColor: colors.accent, width: 18 },
 
   content: { padding: 20, paddingBottom: 40 },
   nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
@@ -299,6 +304,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   distanceText: { ...typography.preset.caption, color: colors.primary, fontWeight: '600' },
 
@@ -318,7 +325,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
   },
-  videoBtnIcon: { fontSize: 16, color: colors.primary },
   videoBtnText: { ...typography.preset.button, color: colors.primary },
 
   actions: { flexDirection: 'row', gap: 12 },
@@ -330,20 +336,20 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 50,
     paddingVertical: 14,
   },
   bookmarkBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentDim },
-  bookmarkIcon: { fontSize: 18 },
   bookmarkText: { ...typography.preset.button, color: colors.textSecondary },
 
   directionsBtn: {
     flex: 2,
+    flexDirection: 'row',
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: 50,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  directionsBtnText: { ...typography.preset.button, color: colors.background },
+  directionsBtnText: { ...typography.preset.button, color: '#FFFFFF' },
 });
