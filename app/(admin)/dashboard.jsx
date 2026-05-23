@@ -123,7 +123,7 @@ export default function DashboardScreen() {
           {sortedInterests.map((cat) => (
             <BarRow
               key={cat.id}
-              label={`${cat.icon} ${cat.label}`}
+              label={`${cat.emoji} ${cat.label}`}
               count={cat.count}
               pct={(cat.count / maxInterest) * 100}
               color={cat.color}

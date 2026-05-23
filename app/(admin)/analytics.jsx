@@ -140,7 +140,7 @@ export default function AnalyticsScreen() {
           {CATEGORIES.map((cat) => (
             <BarRow
               key={cat.id}
-              label={`${cat.icon} ${cat.label}`}
+              label={`${cat.emoji} ${cat.label}`}
               count={destPerCategory[cat.id]}
               pct={(destPerCategory[cat.id] / maxDestPerCat) * 100}
               color={cat.color}
@@ -154,7 +154,7 @@ export default function AnalyticsScreen() {
           {sortedInterests.map((cat) => (
             <BarRow
               key={cat.id}
-              label={`${cat.icon} ${cat.label}`}
+              label={`${cat.emoji} ${cat.label}`}
               count={cat.count}
               pct={(cat.count / maxInterest) * 100}
               color={cat.color}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, onSnapshot, collection } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -36,6 +36,50 @@ const SNAP_HALF = SCREEN_H * 0.52;
 const SNAP_FULL = SCREEN_H * 0.1;
 const SNAP_CLOSED = SCREEN_H;
 
+function VideoCard({ uri }) {
+  return (
+    <TouchableOpacity
+      style={videoStyles.card}
+      activeOpacity={0.85}
+      onPress={() => Linking.openURL(uri)}
+    >
+      <View style={videoStyles.iconWrap}>
+        <MaterialIcons name="play-circle-filled" size={48} color={colors.primary} />
+      </View>
+      <View style={videoStyles.info}>
+        <Text style={videoStyles.label}>Watch Video</Text>
+        <Text style={videoStyles.sub}>Opens in your video player</Text>
+      </View>
+      <MaterialIcons name="open-in-new" size={18} color={colors.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
+const videoStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  info: { flex: 1 },
+  label: { ...typography.preset.subtitle, color: colors.textPrimary, marginBottom: 3 },
+  sub: { ...typography.preset.caption, color: colors.textMuted },
+});
+
 export default function DestinationDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -48,11 +92,11 @@ export default function DestinationDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const translateY = useSharedValue(SNAP_HALF);
   const context = useSharedValue(0);
 
-  // Load destination
   useEffect(() => {
     if (!id) return;
     const unsub = onSnapshot(doc(db, 'destinations', id), (snap) => {
@@ -62,7 +106,6 @@ export default function DestinationDetailScreen() {
     return unsub;
   }, [id]);
 
-  // Check bookmark status
   useEffect(() => {
     if (!user || !id) return;
     const unsub = onSnapshot(doc(db, 'bookmarks', user.uid, 'places', id), (snap) => {
@@ -71,7 +114,6 @@ export default function DestinationDetailScreen() {
     return unsub;
   }, [user, id]);
 
-  // Open sheet on mount
   useEffect(() => {
     translateY.value = withSpring(SNAP_HALF, { damping: 20, stiffness: 150 });
   }, []);
@@ -134,6 +176,8 @@ export default function DestinationDetailScreen() {
   }
 
   const photos = destination?.photos ?? [];
+  const hasVideo = !!destination?.video;
+  const hasLongDesc = !!destination?.longDescription;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -149,7 +193,6 @@ export default function DestinationDetailScreen() {
       {/* Sheet */}
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.sheet, sheetStyle]}>
-          {/* Handle */}
           <View style={styles.handleRow}>
             <View style={styles.handle} />
           </View>
@@ -187,6 +230,12 @@ export default function DestinationDetailScreen() {
                       ))}
                     </View>
                   )}
+                  {photos.length > 1 && (
+                    <View style={styles.photoCountBadge}>
+                      <MaterialIcons name="photo-library" size={12} color={colors.textPrimary} />
+                      <Text style={styles.photoCountText}>{photoIndex + 1} / {photos.length}</Text>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={styles.photoPlaceholder}>
@@ -214,18 +263,49 @@ export default function DestinationDetailScreen() {
                   ))}
                 </View>
 
-                {/* Description */}
-                <Text style={styles.description}>{destination.description}</Text>
+                {/* Short description */}
+                {!!destination.description && (
+                  <Text style={styles.description}>{destination.description}</Text>
+                )}
 
-                {/* Video */}
-                {!!destination.video && (
-                  <TouchableOpacity
-                    style={styles.videoBtn}
-                    onPress={() => Linking.openURL(destination.video)}
-                  >
-                    <MaterialIcons name="play-arrow" size={20} color={colors.primary} />
-                    <Text style={styles.videoBtnText}>Watch Video</Text>
-                  </TouchableOpacity>
+                {/* Long description */}
+                {hasLongDesc && (
+                  <View style={styles.longDescSection}>
+                    <View style={styles.sectionHeader}>
+                      <MaterialIcons name="article" size={16} color={colors.primary} />
+                      <Text style={styles.sectionTitle}>About this place</Text>
+                    </View>
+                    <Text
+                      style={styles.longDescription}
+                      numberOfLines={descExpanded ? undefined : 5}
+                    >
+                      {destination.longDescription}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.expandBtn}
+                      onPress={() => setDescExpanded((v) => !v)}
+                    >
+                      <Text style={styles.expandBtnText}>
+                        {descExpanded ? 'Show less' : 'Read more'}
+                      </Text>
+                      <MaterialIcons
+                        name={descExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Video card */}
+                {hasVideo && (
+                  <View style={styles.videoSection}>
+                    <View style={styles.sectionHeader}>
+                      <MaterialIcons name="videocam" size={16} color={colors.primary} />
+                      <Text style={styles.sectionTitle}>Video</Text>
+                    </View>
+                    <VideoCard uri={destination.video} />
+                  </View>
                 )}
 
                 {/* Actions */}
@@ -294,6 +374,19 @@ const styles = StyleSheet.create({
   },
   photoDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
   photoDotActive: { backgroundColor: colors.accent, width: 18 },
+  photoCountBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  photoCountText: { ...typography.preset.caption, color: colors.textPrimary, fontWeight: '600' },
 
   content: { padding: 20, paddingBottom: 40 },
   nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
@@ -311,21 +404,39 @@ const styles = StyleSheet.create({
 
   chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
 
-  description: { ...typography.preset.body, color: colors.textSecondary, lineHeight: 24, marginBottom: 28 },
+  description: { ...typography.preset.body, color: colors.textSecondary, lineHeight: 24, marginBottom: 20 },
 
-  videoBtn: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    gap: 8,
+    marginBottom: 10,
+  },
+  sectionTitle: { ...typography.preset.label, color: colors.primary, fontWeight: '700' },
+
+  longDescSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.border,
   },
-  videoBtnText: { ...typography.preset.button, color: colors.primary },
+  longDescription: {
+    ...typography.preset.body,
+    color: colors.textSecondary,
+    lineHeight: 24,
+  },
+  expandBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  expandBtnText: { ...typography.preset.label, color: colors.primary },
+
+  videoSection: { marginBottom: 24 },
 
   actions: { flexDirection: 'row', gap: 12 },
   bookmarkBtn: {
