@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { useState, useEffect, useMemo } from "react";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 export function useMapData(profile) {
   const [allDestinations, setAllDestinations] = useState([]);
@@ -8,7 +8,10 @@ export function useMapData(profile) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'destinations'), where('isActive', '==', true));
+    const q = query(
+      collection(db, "destinations"),
+      where("isActive", "==", true),
+    );
     const unsub = onSnapshot(q, (snap) => {
       setAllDestinations(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
@@ -17,16 +20,12 @@ export function useMapData(profile) {
   }, []);
 
   useEffect(() => {
-    if (profile?.class !== 'tourist') {
-      setAmenities([]);
-      return;
-    }
-    const q = query(collection(db, 'amenities'), where('isActive', '==', true));
+    const q = query(collection(db, "amenities"), where("isActive", "==", true));
     const unsub = onSnapshot(q, (snap) => {
       setAmenities(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
-  }, [profile?.class]);
+  }, []);
 
   const destinations = useMemo(() => {
     if (!profile?.interests?.length) return allDestinations;

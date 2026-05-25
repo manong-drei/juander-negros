@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,40 +8,56 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
-import GlassCard from '../../components/ui/GlassCard';
-import DestinationCard from '../../components/ui/DestinationCard';
-import DestinationMarker from '../../components/map/DestinationMarker';
-import AmenityMarker from '../../components/map/AmenityMarker';
-import { useAppContext } from '../../context/AppContext';
-import { useDirections } from '../_layout';
-import { useToast } from '../../components/ui/Toast';
-import { useMapData } from '../../hooks/useMapData';
-import { useLocation, getDistanceLabel, getDistanceKm } from '../../hooks/useLocation';
-import { darkMapStyle } from '../../constants/mapStyle';
-import { colors } from '../../constants/colors';
-import { typography } from '../../constants/typography';
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import MapView, { PROVIDER_GOOGLE, Polyline } from "react-native-maps";
+import GlassCard from "../../components/ui/GlassCard";
+import DestinationCard from "../../components/ui/DestinationCard";
+import DestinationMarker from "../../components/map/DestinationMarker";
+import AmenityMarker from "../../components/map/AmenityMarker";
+import { useAppContext } from "../../context/AppContext";
+import { useDirections } from "../_layout";
+import { useToast } from "../../components/ui/Toast";
+import { useMapData } from "../../hooks/useMapData";
+import {
+  useLocation,
+  getDistanceLabel,
+  getDistanceKm,
+} from "../../hooks/useLocation";
+import { darkMapStyle } from "../../constants/mapStyle";
+import { colors } from "../../constants/colors";
+import { typography } from "../../constants/typography";
 
 function decodePolyline(encoded) {
   const points = [];
-  let index = 0, lat = 0, lng = 0;
+  let index = 0,
+    lat = 0,
+    lng = 0;
   while (index < encoded.length) {
-    let shift = 0, result = 0, b;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    let shift = 0,
+      result = 0,
+      b;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
     lat += result & 1 ? ~(result >> 1) : result >> 1;
     shift = result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
     lng += result & 1 ? ~(result >> 1) : result >> 1;
     points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
   }
   return points;
 }
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W } = Dimensions.get("window");
 
 const NEGROS_REGION = {
   latitude: 10.2926,
@@ -51,9 +67,9 @@ const NEGROS_REGION = {
 };
 
 const LAYER_BUTTONS = [
-  { type: 'atm',        label: 'ATMs',   icon: 'atm' },
-  { type: 'hotel',      label: 'Hotels', icon: 'hotel' },
-  { type: 'restaurant', label: 'Eats',   icon: 'restaurant' },
+  { type: "atm", label: "ATMs", icon: "atm" },
+  { type: "hotel", label: "Hotels", icon: "hotel" },
+  { type: "restaurant", label: "Eats", icon: "restaurant" },
 ];
 
 export default function MapScreen() {
@@ -68,12 +84,18 @@ export default function MapScreen() {
   const mapRef = useRef(null);
   const listRef = useRef(null);
 
-  const [viewMode, setViewMode] = useState('map');
-  const [amenityLayers, setAmenityLayers] = useState({ atm: true, hotel: true, restaurant: true });
+  const [viewMode, setViewMode] = useState("map");
+  const [amenityLayers, setAmenityLayers] = useState({
+    atm: true,
+    hotel: true,
+    restaurant: true,
+  });
   const [activeIndex, setActiveIndex] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
   const [routeInfo, setRouteInfo] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  // Local user amenity toggle
+  const [showAmenities, setShowAmenities] = useState(false);
 
   function toggleLayer(type) {
     setAmenityLayers((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -93,29 +115,48 @@ export default function MapScreen() {
         const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&key=${key}`;
         const res = await fetch(url);
         const json = await res.json();
-        if (json.status !== 'OK') {
-          toast.show({ title: 'Directions unavailable', message: `${json.status}: ${json.error_message ?? ''}`, type: 'error' });
+        if (json.status !== "OK") {
+          toast.show({
+            title: "Directions unavailable",
+            message: `${json.status}: ${json.error_message ?? ""}`,
+            type: "error",
+          });
         } else if (json.routes?.length) {
           const leg = json.routes[0].legs[0];
-          setRouteCoords(decodePolyline(json.routes[0].overview_polyline.points));
-          setRouteInfo({ distance: leg.distance.text, duration: leg.duration.text });
+          setRouteCoords(
+            decodePolyline(json.routes[0].overview_polyline.points),
+          );
+          setRouteInfo({
+            distance: leg.distance.text,
+            duration: leg.duration.text,
+          });
           mapRef.current?.fitToCoordinates(
             [
               { latitude: location.latitude, longitude: location.longitude },
-              { latitude: directionsTo.latitude, longitude: directionsTo.longitude },
+              {
+                latitude: directionsTo.latitude,
+                longitude: directionsTo.longitude,
+              },
             ],
-            { edgePadding: { top: 80, right: 40, bottom: 200, left: 40 }, animated: true }
+            {
+              edgePadding: { top: 80, right: 40, bottom: 200, left: 40 },
+              animated: true,
+            },
           );
         }
       } catch (e) {
-        toast.show({ title: 'Directions fetch failed', message: e.message, type: 'error' });
+        toast.show({
+          title: "Directions fetch failed",
+          message: e.message,
+          type: "error",
+        });
       } finally {
         setRouteLoading(false);
       }
     }
 
     fetchRoute();
-    setViewMode('map');
+    setViewMode("map");
   }, [directionsTo]);
 
   function clearDirections() {
@@ -124,8 +165,8 @@ export default function MapScreen() {
     setRouteInfo(null);
   }
 
-  const sortedDestinations = [...destinations].sort((a, b) =>
-    getDistanceKm(location, a) - getDistanceKm(location, b)
+  const sortedDestinations = [...destinations].sort(
+    (a, b) => getDistanceKm(location, a) - getDistanceKm(location, b),
   );
 
   function openDestination(item) {
@@ -137,12 +178,15 @@ export default function MapScreen() {
     if (index !== activeIndex && sortedDestinations[index]) {
       setActiveIndex(index);
       const dest = sortedDestinations[index];
-      mapRef.current?.animateToRegion({
-        latitude: dest.latitude,
-        longitude: dest.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 350);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: dest.latitude,
+          longitude: dest.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        },
+        350,
+      );
     }
   }
 
@@ -150,36 +194,50 @@ export default function MapScreen() {
     const idx = sortedDestinations.findIndex((d) => d.id === item.id);
     if (idx !== -1) {
       setActiveIndex(idx);
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
+      listRef.current?.scrollToIndex({
+        index: idx,
+        animated: true,
+        viewPosition: 0.5,
+      });
     }
     openDestination(item);
   }
 
-  const visibleAmenities = amenities.filter((a) => amenityLayers[a.type]);
+  // FIX 2: locals only see amenities when showAmenities is true; tourists use amenityLayers as before
+  const visibleAmenities =
+    profile?.class === "tourist" || showAmenities
+      ? amenities.filter((a) => amenityLayers[a.type])
+      : [];
 
-  const renderCard = useCallback(({ item }) => (
-    <DestinationCard
-      item={item}
-      distance={getDistanceLabel(location, item)}
-      onPress={() => openDestination(item)}
-      horizontal
-    />
-  ), [location]);
+  const renderCard = useCallback(
+    ({ item }) => (
+      <DestinationCard
+        item={item}
+        distance={getDistanceLabel(location, item)}
+        onPress={() => openDestination(item)}
+        horizontal
+      />
+    ),
+    [location],
+  );
 
-  const renderListItem = useCallback(({ item }) => (
-    <DestinationCard
-      item={item}
-      distance={getDistanceLabel(location, item)}
-      onPress={() => openDestination(item)}
-      horizontal={false}
-    />
-  ), [location]);
+  const renderListItem = useCallback(
+    ({ item }) => (
+      <DestinationCard
+        item={item}
+        distance={getDistanceLabel(location, item)}
+        onPress={() => openDestination(item)}
+        horizontal={false}
+      />
+    ),
+    [location],
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {viewMode === 'map' ? (
+      {viewMode === "map" ? (
         <>
           <MapView
             ref={mapRef}
@@ -211,96 +269,156 @@ export default function MapScreen() {
             )}
           </MapView>
 
-          {/* Top controls */}
-          <SafeAreaView edges={['top']} style={styles.topControls} pointerEvents="box-none">
-            {/* Search bar */}
-            <View style={styles.searchBar}>
-              <MaterialIcons name="search" size={18} color={colors.textMuted} style={styles.searchIconStyle} />
-              <Text style={styles.searchPlaceholder}>Search destinations...</Text>
-              <MaterialIcons name="tune" size={18} color={colors.textSecondary} />
-            </View>
-
-            {/* Map/List toggle */}
+          {/* FIX 3: Top controls overlay — view toggle + layer buttons (tourist) or amenity toggle (local) */}
+          <View style={styles.topControls}>
             <GlassCard style={styles.toggleCard}>
-              <TouchableOpacity onPress={() => setViewMode('list')} style={styles.toggleBtn}>
-                <MaterialIcons name="view-list" size={16} color={colors.textSecondary} />
+              <TouchableOpacity
+                onPress={() => setViewMode("list")}
+                style={styles.toggleBtn}
+              >
+                <MaterialIcons
+                  name="list"
+                  size={16}
+                  color={colors.textSecondary}
+                />
                 <Text style={styles.toggleText}>List View</Text>
               </TouchableOpacity>
             </GlassCard>
 
-            {/* Tourist layer toggle */}
-            {profile?.class === 'tourist' && (
+            {profile?.class === "tourist" && (
               <GlassCard style={styles.layerCard}>
-                {LAYER_BUTTONS.map((l) => (
+                {LAYER_BUTTONS.map(({ type, label, icon }) => (
                   <TouchableOpacity
-                    key={l.type}
-                    style={[styles.layerBtn, amenityLayers[l.type] && styles.layerBtnActive]}
-                    onPress={() => toggleLayer(l.type)}
+                    key={type}
+                    onPress={() => toggleLayer(type)}
+                    style={[
+                      styles.layerBtn,
+                      amenityLayers[type] && styles.layerBtnActive,
+                    ]}
                   >
                     <MaterialIcons
-                      name={l.icon}
+                      name={icon}
                       size={14}
-                      color={amenityLayers[l.type] ? colors.primary : colors.textMuted}
+                      color={
+                        amenityLayers[type] ? colors.primary : colors.textMuted
+                      }
                     />
-                    <Text style={[styles.layerLabel, amenityLayers[l.type] && { color: colors.primary }]}>
-                      {l.label}
+                    <Text
+                      style={[
+                        styles.layerLabel,
+                        amenityLayers[type] && { color: colors.primary },
+                      ]}
+                    >
+                      {label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </GlassCard>
             )}
-          </SafeAreaView>
 
-          {/* Navigation bar */}
-          {directionsTo && (
+            {profile?.class === "local" && (
+              <GlassCard style={styles.toggleCard}>
+                <TouchableOpacity
+                  onPress={() => setShowAmenities((prev) => !prev)}
+                  style={styles.toggleBtn}
+                >
+                  <MaterialIcons
+                    name="place"
+                    size={16}
+                    color={
+                      showAmenities ? colors.primary : colors.textSecondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      showAmenities && { color: colors.primary },
+                    ]}
+                  >
+                    {showAmenities ? "Hide Amenities" : "Show Amenities"}
+                  </Text>
+                </TouchableOpacity>
+              </GlassCard>
+            )}
+          </View>
+
+          {/* Route nav bar */}
+          {routeInfo && (
             <View style={styles.navBar}>
-              {routeLoading ? (
-                <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
-              ) : (
-                <>
-                  <View style={styles.navInfo}>
-                    <Text style={styles.navName} numberOfLines={1}>{directionsTo.name}</Text>
-                    {routeInfo && (
-                      <Text style={styles.navMeta}>{routeInfo.duration} · {routeInfo.distance}</Text>
-                    )}
-                  </View>
-                  <TouchableOpacity style={styles.navEndBtn} onPress={clearDirections}>
-                    <Text style={styles.navEndText}>End</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+              <MaterialIcons
+                name="navigation"
+                size={20}
+                color={colors.primary}
+              />
+              <View style={styles.navInfo}>
+                <Text style={styles.navName}>
+                  {directionsTo?.name ?? "Destination"}
+                </Text>
+                <Text style={styles.navMeta}>
+                  {routeInfo.distance} · {routeInfo.duration}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={clearDirections}
+                style={styles.navEndBtn}
+              >
+                <Text style={styles.navEndText}>End</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          {/* Bottom card strip */}
-          <View style={[styles.cardStrip, directionsTo && { display: 'none' }]}>
-            <FlatList
-              ref={listRef}
-              data={sortedDestinations}
-              renderItem={renderCard}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.cardList}
-              onScroll={onCardScroll}
-              scrollEventThrottle={16}
-              snapToInterval={212}
-              decelerationRate="fast"
-              ListEmptyComponent={
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No destinations match your preferences.</Text>
-                </View>
-              }
+          {/* FIX 1: Restored card strip with correct FlatList opening tag, data, renderItem, and wrapping View */}
+          {!routeInfo && (
+            <View style={styles.cardStrip}>
+              <FlatList
+                ref={listRef}
+                data={sortedDestinations}
+                renderItem={renderCard}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardList}
+                onScroll={onCardScroll}
+                scrollEventThrottle={16}
+                snapToInterval={212}
+                decelerationRate="fast"
+                ListEmptyComponent={
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>
+                      No destinations match your preferences.
+                    </Text>
+                  </View>
+                }
+              />
+            </View>
+          )}
+
+          {routeLoading && (
+            <ActivityIndicator
+              style={{ position: "absolute", top: "50%", alignSelf: "center" }}
+              color={colors.primary}
+              size="large"
             />
-          </View>
+          )}
         </>
       ) : (
         /* List view */
-        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+        <SafeAreaView
+          edges={["top"]}
+          style={{ flex: 1, backgroundColor: colors.background }}
+        >
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>Nearby Destinations</Text>
-            <TouchableOpacity onPress={() => setViewMode('map')} style={styles.mapToggleBtn}>
-              <MaterialIcons name="map" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+            <TouchableOpacity
+              onPress={() => setViewMode("map")}
+              style={styles.mapToggleBtn}
+            >
+              <MaterialIcons
+                name="map"
+                size={14}
+                color={colors.primary}
+                style={{ marginRight: 4 }}
+              />
               <Text style={styles.mapToggleText}>Map View</Text>
             </TouchableOpacity>
           </View>
@@ -311,7 +429,9 @@ export default function MapScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>No destinations match your preferences.</Text>
+              <Text style={styles.emptyText}>
+                No destinations match your preferences.
+              </Text>
             }
           />
         </SafeAreaView>
@@ -324,7 +444,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
   topControls: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -333,8 +453,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: 20,
     paddingHorizontal: 16,
@@ -343,32 +463,40 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   searchIconStyle: { marginRight: 10 },
-  searchPlaceholder: { ...typography.preset.body, color: colors.textMuted, flex: 1 },
+  searchPlaceholder: {
+    ...typography.preset.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
 
-  toggleCard: { alignSelf: 'center', borderRadius: 50, overflow: 'hidden' },
+  toggleCard: { alignSelf: "center", borderRadius: 50, overflow: "hidden" },
   toggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   toggleText: { ...typography.preset.label, color: colors.textSecondary },
 
-  layerCard: { alignSelf: 'center', borderRadius: 50, flexDirection: 'row' },
+  layerCard: { alignSelf: "center", borderRadius: 50, flexDirection: "row" },
   layerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 50,
   },
   layerBtnActive: { backgroundColor: colors.primaryDim },
-  layerLabel: { ...typography.preset.chip, color: colors.textMuted, textTransform: 'uppercase' },
+  layerLabel: {
+    ...typography.preset.chip,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+  },
 
   navBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 90,
     left: 16,
     right: 16,
@@ -376,12 +504,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -389,7 +517,11 @@ const styles = StyleSheet.create({
   },
   navInfo: { flex: 1 },
   navName: { ...typography.preset.subtitle, color: colors.textPrimary },
-  navMeta: { ...typography.preset.caption, color: colors.primary, marginTop: 2 },
+  navMeta: {
+    ...typography.preset.caption,
+    color: colors.primary,
+    marginTop: 2,
+  },
   navEndBtn: {
     backgroundColor: colors.danger,
     borderRadius: 10,
@@ -398,7 +530,7 @@ const styles = StyleSheet.create({
   },
   navEndText: { ...typography.preset.button, color: colors.textPrimary },
 
-  cardStrip: { position: 'absolute', bottom: 90, left: 0, right: 0 },
+  cardStrip: { position: "absolute", bottom: 90, left: 0, right: 0 },
   cardList: { paddingHorizontal: 16, paddingVertical: 4 },
 
   emptyCard: {
@@ -406,18 +538,23 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.card,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: 12,
   },
-  emptyText: { ...typography.preset.body, color: colors.textMuted, textAlign: 'center', padding: 16 },
+  emptyText: {
+    ...typography.preset.body,
+    color: colors.textMuted,
+    textAlign: "center",
+    padding: 16,
+  },
 
   listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
@@ -425,8 +562,8 @@ const styles = StyleSheet.create({
   },
   listTitle: { ...typography.preset.heading2, color: colors.textPrimary },
   mapToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: 50,
     paddingHorizontal: 14,
