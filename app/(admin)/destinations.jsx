@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Modal, FlatList, Image, ActivityIndicator, Switch,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,7 +29,7 @@ const LAYERS_INIT = { atm: false, hotel: false, restaurant: false };
 const AMENITY_ICONS = { atm: '💳', hotel: '🏨', restaurant: '🍴' };
 
 const EMPTY_DEST = {
-  name: '', description: '', categories: [], suitableFor: [],
+  name: '', description: '', longDescription: '', categories: [], suitableFor: [],
   latitude: '', longitude: '', photos: [], video: '',
 };
 const EMPTY_AMENITY = {
@@ -91,6 +92,7 @@ export default function DestinationsScreen() {
     setDestForm(item ? {
       name: item.name ?? '',
       description: item.description ?? '',
+      longDescription: item.longDescription ?? '',
       categories: item.categories ?? [],
       suitableFor: item.suitableFor ?? [],
       latitude: String(item.latitude ?? ''),
@@ -199,14 +201,14 @@ export default function DestinationsScreen() {
   }
 
   async function saveDestination() {
-    const { name, latitude, longitude, description, categories, suitableFor, photos, video } = destForm;
+    const { name, latitude, longitude, description, longDescription, categories, suitableFor, photos, video } = destForm;
     if (!name || !latitude || !longitude) {
       toast.show({ title: 'Required Fields Missing', message: 'Name and location are required.', type: 'warning' });
       return;
     }
     setSaving(true);
     try {
-      const payload = { name, description, categories, suitableFor,
+      const payload = { name, description, longDescription: longDescription || '', categories, suitableFor,
         latitude: parseFloat(latitude), longitude: parseFloat(longitude),
         photos, video: video || '', isActive: true };
       if (editingId) await updateDestination(editingId, payload);
@@ -291,9 +293,11 @@ export default function DestinationsScreen() {
                 onPress={() => setSelectedDest(dest)}
               >
                 <View style={[styles.markerBubble, !dest.isActive && styles.markerBubbleInactive]}>
-                  <Text style={styles.markerIcon}>
-                    {CATEGORIES.find((c) => dest.categories?.[0] === c.id)?.icon ?? '📍'}
-                  </Text>
+                  <MaterialIcons
+                    name={CATEGORIES.find((c) => dest.categories?.[0] === c.id)?.icon ?? 'place'}
+                    size={18}
+                    color={dest.isActive ? '#fff' : '#aaa'}
+                  />
                 </View>
               </Marker>
             ))}
@@ -354,7 +358,11 @@ export default function DestinationsScreen() {
                 <Image source={{ uri: selectedDest.photos[0] }} style={styles.sheetPhoto} />
               ) : (
                 <View style={styles.sheetPhotoPlaceholder}>
-                  <Text style={{ fontSize: 40 }}>{CATEGORIES.find((c) => selectedDest.categories?.[0] === c.id)?.icon ?? '🏔️'}</Text>
+                  <MaterialIcons
+                    name={CATEGORIES.find((c) => selectedDest.categories?.[0] === c.id)?.icon ?? 'landscape'}
+                    size={48}
+                    color="#aaa"
+                  />
                 </View>
               )}
               <View style={styles.sheetBody}>
@@ -509,11 +517,17 @@ export default function DestinationsScreen() {
                   onChangeText={(v) => setDestForm((p) => ({ ...p, name: v }))}
                   placeholder="Destination name" placeholderTextColor={colors.textMuted} />
 
-                <Text style={styles.fieldLabel}>Description</Text>
+                <Text style={styles.fieldLabel}>Short Description</Text>
                 <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
                   value={destForm.description}
                   onChangeText={(v) => setDestForm((p) => ({ ...p, description: v }))}
-                  placeholder="Write a description..." placeholderTextColor={colors.textMuted} multiline />
+                  placeholder="Brief summary shown on cards..." placeholderTextColor={colors.textMuted} multiline />
+
+                <Text style={styles.fieldLabel}>Long Description</Text>
+                <TextInput style={[styles.input, { height: 160, textAlignVertical: 'top' }]}
+                  value={destForm.longDescription}
+                  onChangeText={(v) => setDestForm((p) => ({ ...p, longDescription: v }))}
+                  placeholder="Detailed description shown on the destination detail page..." placeholderTextColor={colors.textMuted} multiline />
 
                 <Text style={styles.fieldLabel}>Categories</Text>
                 <View style={styles.chipsGrid}>
@@ -523,7 +537,7 @@ export default function DestinationsScreen() {
                       <TouchableOpacity key={cat.id}
                         style={[styles.chip, sel && { backgroundColor: cat.color, borderColor: cat.color }]}
                         onPress={() => toggleCat(cat.id)}>
-                        <Text style={styles.chipIcon}>{cat.icon}</Text>
+                        <MaterialIcons name={cat.icon} size={14} color={sel ? '#fff' : cat.color} />
                         <Text style={[styles.chipLabel, sel && { color: '#fff' }]}>{cat.label}</Text>
                       </TouchableOpacity>
                     );
