@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import AdminDestinationsMap from '../../components/map/AdminDestinationsMap';
+import MapCoordinatePicker from '../../components/map/MapCoordinatePicker';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../firebase/config';
@@ -16,11 +17,8 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { CATEGORIES } from '../../constants/categories';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
-import { darkMapStyle } from '../../constants/mapStyle';
-
 const TRAVEL_TYPES  = ['solo', 'family', 'group'];
 const AMENITY_TYPES = ['atm', 'hotel', 'restaurant'];
-const NEGROS_REGION = { latitude: 10.2926, longitude: 123.0247, latitudeDelta: 1.5, longitudeDelta: 1.5 };
 
 const SORT_OPTIONS = ['az', 'saved', 'active'];
 const SORT_LABELS  = { az: 'A–Z', saved: '🔖 Saved', active: 'Active' };
@@ -276,42 +274,17 @@ export default function DestinationsScreen() {
       {viewMode === 'map' ? (
         /* ── MAP VIEW ── */
         <>
-          <MapView
-            ref={mapRef}
-            style={StyleSheet.absoluteFill}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={NEGROS_REGION}
-            customMapStyle={darkMapStyle}
-            showsUserLocation
-            showsCompass={false}
-          >
-            {destinations.map((dest) => (
-              <Marker
-                key={dest.id}
-                coordinate={{ latitude: dest.latitude, longitude: dest.longitude }}
-                opacity={dest.isActive ? 1 : 0.35}
-                onPress={() => setSelectedDest(dest)}
-              >
-                <View style={[styles.markerBubble, !dest.isActive && styles.markerBubbleInactive]}>
-                  <MaterialIcons
-                    name={CATEGORIES.find((c) => dest.categories?.[0] === c.id)?.icon ?? 'place'}
-                    size={18}
-                    color={dest.isActive ? '#fff' : '#aaa'}
-                  />
-                </View>
-              </Marker>
-            ))}
-            {visibleAmenities.map((a) => (
-              <Marker
-                key={a.id}
-                coordinate={{ latitude: a.latitude, longitude: a.longitude }}
-              >
-                <View style={[styles.amenityBubble, { backgroundColor: colors.amenity[a.type] + '30', borderColor: colors.amenity[a.type] }]}>
-                  <Text style={{ fontSize: 14 }}>{AMENITY_ICONS[a.type]}</Text>
-                </View>
-              </Marker>
-            ))}
-          </MapView>
+          <AdminDestinationsMap
+            mapRef={mapRef}
+            destinations={destinations}
+            visibleAmenities={visibleAmenities}
+            onSelectDestination={setSelectedDest}
+            markerStyles={{
+              markerBubble: styles.markerBubble,
+              markerBubbleInactive: styles.markerBubbleInactive,
+              amenityBubble: styles.amenityBubble,
+            }}
+          />
 
           {/* Top overlay */}
           <SafeAreaView style={styles.topOverlay} edges={['top']}>
@@ -681,18 +654,10 @@ export default function DestinationsScreen() {
       {/* ── Map Picker Modal ── */}
       <Modal visible={showMapPicker} animationType="slide" presentationStyle="fullScreen">
         <View style={{ flex: 1, backgroundColor: colors.background }}>
-          <MapView
-            style={StyleSheet.absoluteFill}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={tempCoord ? { ...tempCoord, latitudeDelta: 0.05, longitudeDelta: 0.05 } : NEGROS_REGION}
-            customMapStyle={darkMapStyle}
-            onLongPress={(e) => setTempCoord(e.nativeEvent.coordinate)}
-          >
-            {tempCoord && (
-              <Marker coordinate={tempCoord} draggable pinColor={colors.primary}
-                onDragEnd={(e) => setTempCoord(e.nativeEvent.coordinate)} />
-            )}
-          </MapView>
+          <MapCoordinatePicker
+            tempCoord={tempCoord}
+            onSetCoord={setTempCoord}
+          />
           <SafeAreaView style={styles.mapPickerTopBar} edges={['top']}>
             <TouchableOpacity style={styles.mapPickerCloseBtn} onPress={() => setShowMapPicker(false)}>
               <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>✕</Text>

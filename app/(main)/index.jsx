@@ -12,17 +12,14 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import GlassCard from '../../components/ui/GlassCard';
 import DestinationCard from '../../components/ui/DestinationCard';
-import DestinationMarker from '../../components/map/DestinationMarker';
-import AmenityMarker from '../../components/map/AmenityMarker';
+import ExploreMap from '../../components/map/ExploreMap';
 import { useAppContext } from '../../context/AppContext';
 import { useDirections } from '../_layout';
 import { useToast } from '../../components/ui/Toast';
 import { useMapData } from '../../hooks/useMapData';
 import { useLocation, getDistanceLabel, getDistanceKm } from '../../hooks/useLocation';
-import { darkMapStyle } from '../../constants/mapStyle';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 
@@ -42,13 +39,6 @@ function decodePolyline(encoded) {
 }
 
 const { width: SCREEN_W } = Dimensions.get('window');
-
-const NEGROS_REGION = {
-  latitude: 10.2926,
-  longitude: 123.0247,
-  latitudeDelta: 1.5,
-  longitudeDelta: 1.5,
-};
 
 const LAYER_BUTTONS = [
   { type: 'atm',        label: 'ATMs',   icon: 'atm' },
@@ -181,35 +171,13 @@ export default function MapScreen() {
 
       {viewMode === 'map' ? (
         <>
-          <MapView
-            ref={mapRef}
-            style={StyleSheet.absoluteFill}
-            provider={PROVIDER_GOOGLE}
-            customMapStyle={darkMapStyle}
-            initialRegion={NEGROS_REGION}
-            showsUserLocation
-            showsMyLocationButton={false}
-            showsCompass={false}
-          >
-            {sortedDestinations.map((dest) => (
-              <DestinationMarker
-                key={dest.id}
-                destination={dest}
-                onPress={onMarkerPress}
-              />
-            ))}
-            {visibleAmenities.map((amenity) => (
-              <AmenityMarker key={amenity.id} amenity={amenity} />
-            ))}
-            {routeCoords.length > 0 && (
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor={colors.primary}
-                strokeWidth={4}
-                lineDashPattern={[0]}
-              />
-            )}
-          </MapView>
+          <ExploreMap
+            mapRef={mapRef}
+            destinations={sortedDestinations}
+            amenities={visibleAmenities}
+            routeCoords={routeCoords}
+            onMarkerPress={onMarkerPress}
+          />
 
           {/* Top controls */}
           <SafeAreaView edges={['top']} style={styles.topControls} pointerEvents="box-none">
